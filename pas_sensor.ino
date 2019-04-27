@@ -1,4 +1,7 @@
-const int pas_in = 2;                               //PAS Sensor read-Pin
+#define PAS_SENSOR_PIN 2
+#define THROTTLE_PIN 3
+
+#define MIN_PEDALLING_TRUE_PULSES 2
 
 volatile unsigned long last_pas_event = millis();   //Last change-time of PAS sensor status
 volatile boolean pedaling = false;                  //Pedaling? (in forward direction!)
@@ -8,18 +11,18 @@ volatile int pas_on_time = 0;                       //High-Time of PAS-Sensor-Si
 volatile int pas_off_time = 0;                      //Low-Time of PAS-Sensor-Signal  (needed to determine pedaling direction)
 volatile int pas_failtime = 0;                      //How many subsequent "wrong" PAS values?
 
-const double pas_factor_min=0.5;                    //Larger or smaller than 1.0 and not 0.0!
-const double pas_factor_max=0.9;                    //Larger or smaller than 1.0 and not 0.0!
+const double pas_factor_min=1.08;                    //Larger or smaller than 1.0 and not 0.0!
+const double pas_factor_max=1.45;                    //Larger or smaller than 1.0 and not 0.0!
 
 const int pas_timeout=190;
-const int pas_tolerance=1;                          //0... increase to make pas sensor slower but more tolerant against speed changes
+const int pas_tolerance=0;                          //0... increase to make pas sensor slower but more tolerant against speed changes
 
 void setup() { 
-  pinMode(pas_in,INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(pas_in), pas_change, CHANGE);
+  pinMode(PAS_SENSOR_PIN,INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PAS_SENSOR_PIN), pas_change, CHANGE);
 
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(A4, OUTPUT);
+  pinMode(THROTTLE_PIN, OUTPUT);
 
   //Serial.begin(9600);
 }
@@ -30,19 +33,19 @@ void loop() {
     pedaling = false;
   }
 
-  if(pedaling_on_times > 2) {
+  if(pedaling_on_times >= MIN_PEDALLING_TRUE_PULSES) {
     digitalWrite(LED_BUILTIN, HIGH);
-    digitalWrite(A4, HIGH);
+    digitalWrite(THROTTLE_PIN, HIGH);
   }else{
     digitalWrite(LED_BUILTIN, LOW);  
-    digitalWrite(A4, LOW);
+    digitalWrite(THROTTLE_PIN, LOW);
   }
 }
 
 void pas_change() {
-  if (last_pas_event > (millis() - 10)) return;
+  if (last_pas_event > (millis() - 5)) return;
   
-  boolean pas_stat = digitalRead(pas_in);
+  boolean pas_stat = digitalRead(PAS_SENSOR_PIN);
   if (pas_stat) {
     pas_off_time = millis() - last_pas_event;
   } else {
